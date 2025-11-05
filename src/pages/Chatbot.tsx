@@ -179,7 +179,7 @@ export default function Chatbot() {
       }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
+//
   // Function to handle voice input
   const toggleVoiceInput = () => {
     if (!recognitionRef.current) {
