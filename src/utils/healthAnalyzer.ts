@@ -1,5 +1,6 @@
 import axios from "axios";
-export interface HealthReport { id: string; userId: string; date: string; symptoms: string[]; causes: string[]; deficiencies: string[]; prevention: string[]; cure: string[]; medicines: string[]; yoga: string[]; exercises: string[]; foodsToEat: string[]; foodsToAvoid: string[]; thingsToFollow: string[]; thingsToAvoid: string[]; naturalRemedies: string[]; healthScore: number; summary: string; rawInput: string; }
+import { getGlobalStorage } from "../context/StorageContext";
+
 export interface HealthReport {
   id: string;
   userId: string;
@@ -69,20 +70,23 @@ export async function analyzeHealth(symptomsText: string, userId: string): Promi
   }
 }
 
-// Local storage utilities
+// Storage utilities
 export function saveReport(report: HealthReport) {
-  const reports = JSON.parse(localStorage.getItem("healthReports") || "[]");
+  const storage = getGlobalStorage();
+  const reports = JSON.parse(storage.getItem("healthReports") || "[]");
   reports.unshift(report);
-  localStorage.setItem("healthReports", JSON.stringify(reports));
+  storage.setItem("healthReports", JSON.stringify(reports));
 }
 
 export function getReports(userId: string): HealthReport[] {
-  const reports = JSON.parse(localStorage.getItem("healthReports") || "[]");
+  const storage = getGlobalStorage();
+  const reports = JSON.parse(storage.getItem("healthReports") || "[]");
   return reports.filter((r: HealthReport) => r.userId === userId);
 }
 
 export function getReportById(id: string): HealthReport | null {
-  const reports = JSON.parse(localStorage.getItem("healthReports") || "[]");
+  const storage = getGlobalStorage();
+  const reports = JSON.parse(storage.getItem("healthReports") || "[]");
   return reports.find((r: HealthReport) => r.id === id) || null;
 }
 

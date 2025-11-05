@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getGlobalStorage } from "../context/StorageContext";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -13,7 +14,8 @@ const api = axios.create({
 // Add token to requests if available
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    const storage = getGlobalStorage();
+    const token = storage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -30,8 +32,9 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Token expired or invalid
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      const storage = getGlobalStorage();
+      storage.removeItem("token");
+      storage.removeItem("user");
       window.location.href = "/login";
     }
     return Promise.reject(error);
@@ -108,6 +111,18 @@ export const healthReportAPI = {
     const response = await api.get(`/reports/average-score/${userId}`);
     return response.data;
   },
+
+  analyzeImage: async (imageFile: File) => {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    
+    const response = await api.post('/reports/analyze-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
 };
 
 // Weekly Planner API
@@ -138,14 +153,25 @@ export const weeklyPlannerAPI = {
     );
     return response.data;
   },
+
+  getPlannersByUser: async (userId: string) => {
+    const response = await api.get(`/weekly-planner/user/${userId}`);
+    return response.data;
+  },
+
+  getPlannerById: async (id: string) => {
+    const response = await api.get(`/weekly-planner/${id}`);
+    return response.data;
+  },
 };
 
 // Chatbot API
 export const chatbotAPI = {
-  chat: async (message: string, userId: string) => {
+  chat: async (message: string, userId: string, language: 'en' | 'hi' = 'en') => {
     const response = await api.post("/chatbot/chat", {
       message,
       userId,
+      language,
     });
     return response.data;
   },
@@ -188,6 +214,19 @@ export const reminderAPI = {
 
   createRemindersFromPlanner: async (plannerId: string, userId: string) => {
     const response = await api.post("/reminders/from-planner", { plannerId, userId });
+    return response.data;
+  },
+};
+
+// Nutrition Calculator API
+export const nutritionAPI = {
+  calculate: async (foodInput: string) => {
+    const response = await api.post("/nutrition/calculate", { foodInput });
+    return response.data;
+  },
+
+  getAvailableFoods: async () => {
+    const response = await api.get("/nutrition/foods");
     return response.data;
   },
 };

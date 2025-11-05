@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { healthReportAPI, reminderAPI } from '../services/api';
+import { useStorage } from '../context/StorageContext';
+import { healthReportAPI, reminderAPI, weeklyPlannerAPI } from '../services/api';
 import Navbar from '../components/Navbar';
+import AnimatedBackground from '../components/AnimatedBackground';
+import EmergencyHelp from '../components/EmergencyHelp';
 import {
   Activity,
   TrendingUp,
@@ -33,6 +36,7 @@ interface HealthReport {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const storage = useStorage();
   const navigate = useNavigate();
   const [reports, setReports] = useState<HealthReport[]>([]);
   const [weeklyPlans, setWeeklyPlans] = useState<any[]>([]);
@@ -44,6 +48,9 @@ export default function Dashboard() {
   const [avgHealthScore, setAvgHealthScore] = useState(0);
   const [loading, setLoading] = useState(true);
   const [upcomingReminders, setUpcomingReminders] = useState<any[]>([]);
+  const [completedRemindersCount, setCompletedRemindersCount] = useState(0);
+  const [showAllReports, setShowAllReports] = useState(false);
+  const [showAllPlans, setShowAllPlans] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -84,21 +91,48 @@ export default function Dashboard() {
         setAvgHealthScore(scoreResponse.averageScore || 0);
       }
 
-            // Weekly plans from localStorage (or could be fetched from backend if implemented)
-            const plans = JSON.parse(localStorage.getItem('weeklyPlans') || '[]');
-            const userPlans = plans.filter((p: any) => p.userId === user.id);
-            setWeeklyPlans(userPlans);
+      // Fetch weekly plans from backend
+      try {
+        const plansResponse = await weeklyPlannerAPI.getPlannersByUser(user.id);
+        if (plansResponse.success && plansResponse.data) {
+          setWeeklyPlans(plansResponse.data);
+        }
+      } catch (error) {
+        console.error('Error fetching weekly plans:', error);
+        // Fallback to storage if backend fails
+        const plans = JSON.parse(storage.getItem('weeklyPlans') || '[]');
+        const userPlans = plans.filter((p: any) => p.userId === user.id);
+        setWeeklyPlans(userPlans);
+      }
 
-            // Fetch upcoming reminders
+            // Fetch reminders
             try {
-              const remindersResponse = await reminderAPI.getUserReminders(user.id, { isActive: true });
-              if (remindersResponse.success && remindersResponse.data) {
-                const reminders = remindersResponse.data.filter((r: any) => {
+              // Fetch all reminders (not just active) to get completed count
+              const allRemindersResponse = await reminderAPI.getUserReminders(user.id);
+              if (allRemindersResponse.success && allRemindersResponse.data) {
+                // Calculate completed count - include all reminders with isCompleted = true
+                const completedCount = allRemindersResponse.data.filter((r: any) => r.isCompleted).length;
+                setCompletedRemindersCount(completedCount);
+
+                // Filter for active upcoming reminders
+                const now = new Date();
+                const reminders = allRemindersResponse.data.filter((r: any) => {
+                  if (!r.isActive) return false;
                   const nextReminder = new Date(r.nextReminder);
-                  return nextReminder > new Date();
-                }).sort((a: any, b: any) => 
-                  new Date(a.nextReminder).getTime() - new Date(b.nextReminder).getTime()
-                ).slice(0, 5); // Get top 5 upcoming
+                  // Show reminder if:
+                  // - It's upcoming (nextReminder > now) OR
+                  // - It's recurring and was completed but next reminder time has passed
+                  const isUpcoming = nextReminder > now;
+                  const isRecurringCompleted = r.frequency !== 'once' && r.isCompleted && r.completedAt && 
+                    new Date(r.completedAt) < now && nextReminder <= now;
+                  return isUpcoming || isRecurringCompleted;
+                }).sort((a: any, b: any) => {
+                  // Sort by next reminder time, but put non-completed first
+                  if (a.isCompleted !== b.isCompleted) {
+                    return a.isCompleted ? 1 : -1;
+                  }
+                  return new Date(a.nextReminder).getTime() - new Date(b.nextReminder).getTime();
+                }).slice(0, 5); // Get top 5 upcoming
                 setUpcomingReminders(reminders);
               }
             } catch (error) {
@@ -152,19 +186,28 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-cyan-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen relative">
+      <AnimatedBackground 
+        particleCount={40}
+        parallaxIntensity={0.2}
+        enableParticles={true}
+        enableGradient={true}
+      />
       <Navbar />
 
-      <div className="pt-24 pb-12 px-4">
+      <div className="pt-24 pb-12 px-4 relative z-10">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-8 flex items-center justify-between">
+            <div>
             <h1 className="text-gray-900 dark:text-white mb-2">
               Welcome back, {user?.name}!
             </h1>
             <p className="text-gray-600 dark:text-gray-300">
               Here's your health overview and progress
             </p>
+            </div>
+            <EmergencyHelp />
           </div>
 
           {/* Health Tip */}
@@ -225,16 +268,16 @@ export default function Dashboard() {
               <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Health assessments</p>
             </div>
 
-            {/* Weekly Plans */}
+            {/* Completed Reminders */}
             <div className="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <div className="w-10 h-10 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                 </div>
-                <h3 className="text-gray-900 dark:text-white">Weekly Plans</h3>
+                <h3 className="text-gray-900 dark:text-white">Completed Reminders</h3>
               </div>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white">{weeklyPlans.length}</div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Diet & exercise plans</p>
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">{completedRemindersCount}</div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Reminders completed</p>
             </div>
           </div>
 
@@ -342,18 +385,28 @@ export default function Dashboard() {
           <div className="mb-8 p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-gray-900 dark:text-white">Past Reports History</h3>
-              <Link
-                to="/analyze"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-lg transition-shadow text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                New Assessment
-              </Link>
+              <div className="flex items-center gap-3">
+                {reports.length > 3 && (
+                  <button
+                    onClick={() => setShowAllReports(!showAllReports)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-emerald-500 transition-colors text-sm"
+                  >
+                    {showAllReports ? 'Show Less' : 'View All'}
+                  </button>
+                )}
+                <Link
+                  to="/analyze"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-lg transition-shadow text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Assessment
+                </Link>
+              </div>
             </div>
 
             {reports.length > 0 ? (
               <div className="space-y-3">
-                {reports.slice(0, 5).map((report) => (
+                {(showAllReports ? reports : reports.slice(0, 3)).map((report) => (
                   <div
                     key={report._id || report.id}
                     className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-emerald-500 transition-colors"
@@ -445,28 +498,43 @@ export default function Dashboard() {
           <div className="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-gray-900 dark:text-white">Past Weekly Plans</h3>
+              {weeklyPlans.length > 3 && (
+                <button
+                  onClick={() => setShowAllPlans(!showAllPlans)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-emerald-500 transition-colors text-sm"
+                >
+                  {showAllPlans ? 'Show Less' : 'View All'}
+                </button>
+              )}
             </div>
 
             {weeklyPlans.length > 0 ? (
               <div className="space-y-3">
-                {weeklyPlans.map((plan) => (
+                {(showAllPlans ? weeklyPlans : weeklyPlans.slice(0, 3)).map((plan) => (
                   <div
-                    key={plan.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+                    key={plan.id || plan._id}
+                    className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-emerald-500 transition-colors"
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-400 flex items-center justify-center">
                         <Calendar className="w-6 h-6 text-white" />
                       </div>
                       <div>
-                        <p className="text-gray-900 dark:text-white">
-                          Week of {new Date(plan.createdDate).toLocaleDateString()}
+                        <p className="text-gray-900 dark:text-white font-medium">
+                          Week of {new Date(plan.createdDate || plan.weekStart || Date.now()).toLocaleDateString()}
                         </p>
                         <p className="text-gray-600 dark:text-gray-400 text-sm">
-                          {plan.weekPlan.length} days planned
+                          {plan.weekPlan?.length || plan.days?.length || 0} days planned
                         </p>
                       </div>
                     </div>
+                    <Link
+                      to={`/planner/${plan.id || plan._id}`}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-emerald-500 transition-colors"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View Plan
+                    </Link>
                   </div>
                 ))}
               </div>

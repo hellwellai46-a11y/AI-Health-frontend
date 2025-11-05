@@ -1,10 +1,13 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { useStorage } from '../context/StorageContext';
 import { Heart, Target, Zap, Mail, Phone, MapPin, User } from 'lucide-react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { toast } from 'sonner@2.0.3';
 
 export default function About() {
+  const storage = useStorage();
   const [showTeam, setShowTeam] = useState(false);
   const [showContact, setShowContact] = useState(false);
   const [contactForm, setContactForm] = useState({
@@ -47,13 +50,13 @@ export default function About() {
       return;
     }
     
-    // Store contact submission in localStorage
-    const contacts = JSON.parse(localStorage.getItem('contactSubmissions') || '[]');
+    // Store contact submission in storage
+    const contacts = JSON.parse(storage.getItem('contactSubmissions') || '[]');
     contacts.push({
       ...contactForm,
       date: new Date().toISOString()
     });
-    localStorage.setItem('contactSubmissions', JSON.stringify(contacts));
+    storage.setItem('contactSubmissions', JSON.stringify(contacts));
     
     toast.success('Thank you for reaching out! We\'ll get back to you soon.');
     setContactForm({ name: '', email: '', message: '' });
@@ -330,9 +333,44 @@ export default function About() {
       )}
 
       {/* Footer */}
-      <footer className="py-8 px-4 bg-gray-900 text-white mt-20">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-gray-400">© 2025 AI Health & Wellness Analyzer. All rights reserved.</p>
+      <footer className="py-12 px-4 bg-gray-900 text-white mt-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl font-bold bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent tracking-tight">
+                  HEALWELL AI
+                </span>
+              </div>
+              <p className="text-gray-400">
+                AI-powered health and wellness analysis platform for comprehensive health insights.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="mb-4">Quick Links</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link to="/" className="hover:text-emerald-400 transition-colors">Home</Link></li>
+                <li><Link to="/about" className="hover:text-emerald-400 transition-colors">About Us</Link></li>
+                <li><Link to="/feedback" className="hover:text-emerald-400 transition-colors">Feedback</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="mb-4">Features</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li>AI Health Analysis</li>
+                <li>Diet Planning</li>
+                <li>Progress Tracking</li>
+                <li>BMI Calculator</li>
+                <li>24/7 AI Chatbot</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="pt-8 border-t border-gray-800 text-center text-gray-400">
+            <p>© 2025 HEALWELL AI. All rights reserved.</p>
+          </div>
         </div>
       </footer>
     </div>

@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
-import { Activity, Brain, Heart, TrendingUp, Shield, Sparkles, MessageCircle, FileText, Apple, Stethoscope } from 'lucide-react';
+import AnimatedBackground from '../components/AnimatedBackground';
+import NutritionCalculator from '../components/NutritionCalculator';
+import { Brain, Heart, TrendingUp, Shield, Sparkles, MessageCircle, FileText, Apple, Stethoscope, UtensilsCrossed } from 'lucide-react';
 
 export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [showNutritionCalculator, setShowNutritionCalculator] = useState(false);
 
   const handleStartAssessment = () => {
     if (user) {
@@ -13,6 +17,10 @@ export default function Home() {
     } else {
       navigate('/login');
     }
+  };
+
+  const handleOpenNutritionCalculator = () => {
+    setShowNutritionCalculator(true);
   };
 
   const services = [
@@ -49,11 +57,17 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-cyan-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen relative">
+      <AnimatedBackground 
+        particleCount={60}
+        parallaxIntensity={0.3}
+        enableParticles={true}
+        enableGradient={true}
+      />
       <Navbar />
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4">
+      <section className="pt-32 pb-20 px-4 relative z-10">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col items-center text-center space-y-6">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
@@ -61,18 +75,18 @@ export default function Home() {
               <span>AI-Powered Health Analysis</span>
             </div>
             
-            <h1 className="text-gray-900 dark:text-white">
+            <h1 className="text-gray-900 dark:text-white animate-fade-in-up">
               Your Personal <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-cyan-500">AI Health</span> & Wellness Analyzer
             </h1>
             
-            <p className="text-gray-600 dark:text-gray-300 max-w-2xl">
+            <p className="text-gray-600 dark:text-gray-300 max-w-2xl fade-in-delay-300">
               Enter your symptoms and get comprehensive AI-generated health reports with personalized recommendations for diet, yoga, lifestyle, and medical remedies.
             </p>
 
-            <div className="flex flex-wrap justify-center gap-4">
+            <div className="flex flex-wrap justify-center gap-4 fade-in-delay-600">
               <button
                 onClick={handleStartAssessment}
-                className="px-8 py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                className="px-8 py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-2xl hover:scale-105 transition-all duration-300 font-semibold shadow-lg relative z-20"
               >
                 Start Assessment
               </button>
@@ -84,11 +98,53 @@ export default function Home() {
                     navigate('/login');
                   }
                 }}
-                className="flex items-center gap-2 px-8 py-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors"
+                className="group relative flex items-center gap-2 px-8 py-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors font-semibold shadow-lg relative z-20"
               >
                 <MessageCircle className="w-5 h-5" />
-                AI Chatbot
+                <span>AI Chatbot</span>
+               
               </Link>
+            </div>
+
+            {/* Nutrition Check Card */}
+            <div className="mt-8 fade-in-delay-900">
+              <button
+                onClick={handleOpenNutritionCalculator}
+                className="group relative px-8 py-6 rounded-2xl text-white hover:scale-[1.05] transition-all duration-300 font-bold shadow-xl relative z-20 flex items-center justify-center gap-4 overflow-hidden animate-pulse-glow"
+                style={{
+                  background: 'linear-gradient(90deg, #059669, #14b8a6, #06b6d4, #14b8a6, #059669)',
+                  backgroundSize: '200% 100%',
+                  animation: 'gradient-shift 8s ease infinite, pulse-glow 2s ease-in-out infinite'
+                }}
+              >
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 animate-shimmer transition-opacity duration-500"></div>
+                
+                {/* Soft green/white shadow effect */}
+                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400/30 via-teal-300/30 to-cyan-400/30 rounded-2xl blur-md opacity-60 group-hover:opacity-80 transition-opacity duration-300 animate-pulse-glow"></div>
+                
+                {/* Glowing effect on hover */}
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 opacity-0 group-hover:opacity-25 transition-opacity duration-300 blur-xl"></div>
+                
+                {/* Left Icon - Nutrition/Food */}
+                <div className="relative z-10 flex items-center justify-center">
+                  <UtensilsCrossed className="w-6 h-6 group-hover:scale-110 transition-transform duration-300 animate-icon-bounce" style={{ animationDelay: '0s' }} />
+                </div>
+                
+                {/* Text Content */}
+                <div className="relative z-10 text-center">
+                  <div className="text-lg font-bold tracking-tight group-hover:scale-105 transition-transform duration-300">Check your Nutrition</div>
+                  <div className="text-xs font-normal text-white/80 mt-0.5 group-hover:text-white/100 transition-colors duration-300">Powered by AI</div>
+                </div>
+                
+                {/* Right Icon - Apple/Heart */}
+                <div className="relative z-10 flex items-center justify-center">
+                  <Apple className="w-6 h-6 group-hover:scale-110 transition-transform duration-300 animate-icon-bounce" style={{ animationDelay: '0.5s' }} />
+                </div>
+                
+                {/* Animated border glow */}
+                <div className="absolute inset-0 rounded-2xl border-2 border-emerald-400/50 group-hover:border-emerald-300/80 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-300"></div>
+              </button>
             </div>
 
             <div className="flex items-center justify-center gap-8 pt-4">
@@ -108,7 +164,7 @@ export default function Home() {
       </section>
 
       {/* Services Section */}
-      <section className="py-20 px-4 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+      <section className="py-20 px-4 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm relative z-10">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-gray-900 dark:text-white mb-4">
@@ -135,9 +191,9 @@ export default function Home() {
           </div>
         </div>
       </section>
-
+      
       {/* CTA Section */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 relative z-10">
         <div className="max-w-4xl mx-auto">
           <div className="relative p-12 rounded-3xl bg-gradient-to-r from-emerald-500 to-cyan-500 overflow-hidden">
             <div className="absolute inset-0 opacity-10">
@@ -164,7 +220,7 @@ export default function Home() {
       </section>
 
       {/* Disclaimer */}
-      <section className="py-8 px-4 bg-yellow-50 dark:bg-yellow-900/20 border-t border-yellow-200 dark:border-yellow-800">
+      <section className="py-8 px-4 bg-yellow-50 dark:bg-yellow-900/20 border-t border-yellow-200 dark:border-yellow-800 relative z-10">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-start gap-3">
             <Shield className="w-6 h-6 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-1" />
@@ -178,15 +234,14 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 bg-gray-900 text-white">
+      <footer className="py-12 px-4 bg-gray-900 text-white relative z-10">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-cyan-400 rounded-xl flex items-center justify-center">
-                  <Activity className="w-6 h-6 text-white" />
-                </div>
-                <span>Health Analyzer</span>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl font-bold bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent tracking-tight">
+                  HEALWELL AI
+                </span>
               </div>
               <p className="text-gray-400">
                 AI-powered health and wellness analysis platform for comprehensive health insights.
@@ -216,10 +271,13 @@ export default function Home() {
           </div>
           
           <div className="pt-8 border-t border-gray-800 text-center text-gray-400">
-            <p>© 2025 AI Health & Wellness Analyzer. All rights reserved.</p>
+            <p>© 2025 HEALWELL AI. All rights reserved.</p>
           </div>
         </div>
       </footer>
+
+      {/* Nutrition Calculator */}
+      <NutritionCalculator isOpen={showNutritionCalculator} onOpenChange={setShowNutritionCalculator} />
     </div>
   );
 }

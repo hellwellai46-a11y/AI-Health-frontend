@@ -1,14 +1,19 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import { healthReportAPI } from '../services/api';
-import { Sparkles, AlertCircle, Loader2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Sparkles, AlertCircle, Loader2, ChevronRight, ChevronLeft, Upload, Image as ImageIcon, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function HealthAnalyzer() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [extractedSymptoms, setExtractedSymptoms] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -30,6 +35,111 @@ export default function HealthAnalyzer() {
 
   const handlePrevious = () => {
     if (step > 1) setStep(step - 1);
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size should be less than 5MB');
+      return;
+    }
+
+    setUploadedImage(file);
+    setImageLoading(true);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    try {
+      const response = await healthReportAPI.analyzeImage(file);
+      
+      if (response.success && response.data) {
+        const { aiDescription, symptoms, symptomsText } = response.data;
+        
+        // Auto-fill the description field with extracted symptoms
+        setFormData(prev => ({
+          ...prev,
+          description: symptomsText || aiDescription || prev.description
+        }));
+        
+        setExtractedSymptoms(symptomsText || aiDescription);
+        toast.success('Image analyzed! Symptoms extracted and added to form.');
+      } else {
+        throw new Error('Failed to analyze image');
+      }
+    } catch (error: any) {
+      console.error('Error analyzing image:', error);
+      toast.error(error.response?.data?.error || 'Failed to analyze image. Please try again.');
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setUploadedImage(null);
+    setImagePreview(null);
+    setExtractedSymptoms('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleGenerateFromImage = async () => {
+    if (!user) {
+      toast.error('Please login to continue');
+      navigate('/login');
+      return;
+    }
+
+    if (!extractedSymptoms) {
+      toast.error('Please upload and analyze an image first');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await healthReportAPI.generateAnalysis(
+        user.id,
+        extractedSymptoms,
+        'report',
+        {
+          duration: formData.duration || 'recent',
+          severity: formData.severity || 'Moderate',
+          frequency: formData.frequency || 'Ongoing',
+          worseCondition: formData.triggers,
+          existingConditions: formData.existingConditions,
+          medications: formData.medications,
+          lifestyle: formData.lifestyle,
+          dietPreference: formData.dietPreference || 'non-vegetarian'
+        }
+      );
+
+      if (response.success && response.data?.report) {
+        toast.success('Health report generated successfully from image!');
+        setLoading(false);
+        navigate(`/report/${response.data.report._id || response.data.report.id}`);
+      } else {
+        throw new Error('Failed to generate report');
+      }
+    } catch (error: any) {
+      console.error('Error generating report:', error);
+      toast.error(error.response?.data?.error || 'Failed to generate health report. Please try again.');
+      setLoading(false);
+    }
   };
 
   const handleAnalyze = async () => {
@@ -144,8 +254,81 @@ Lifestyle: ${formData.lifestyle}
                 <div>
                   <h2 className="text-gray-900 dark:text-white mb-2">Describe Your Symptoms</h2>
                   <p className="text-gray-600 dark:text-gray-300 mb-4">
-                    Please provide a detailed description of what you're experiencing
+                    Please provide a detailed description of what you're experiencing, or upload an image for AI analysis
                   </p>
+                </div>
+
+                {/* Image Upload Section */}
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 bg-gray-50 dark:bg-gray-700/50">
+                  <div className="text-center">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    {!imagePreview ? (
+                      <label
+                        htmlFor="image-upload"
+                        className="cursor-pointer flex flex-col items-center justify-center space-y-3"
+                      >
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 flex items-center justify-center">
+                          <Upload className="w-8 h-8 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-gray-700 dark:text-gray-300 font-medium">
+                            {imageLoading ? 'Analyzing image...' : 'Upload an image for AI analysis'}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Supported: JPG, PNG, GIF (Max 5MB)
+                          </p>
+                        </div>
+                      </label>
+                    ) : (
+                      <div className="relative">
+                        <div className="relative inline-block">
+                          <img
+                            src={imagePreview}
+                            alt="Uploaded"
+                            className="max-h-64 rounded-lg border-2 border-gray-300 dark:border-gray-600"
+                          />
+                          <button
+                            onClick={handleRemoveImage}
+                            className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        {extractedSymptoms && (
+                          <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                            <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium mb-2">
+                              ✓ Symptoms extracted from image
+                            </p>
+                            <p className="text-sm text-emerald-600 dark:text-emerald-400">
+                              {extractedSymptoms}
+                            </p>
+                          </div>
+                        )}
+                        {imageLoading && (
+                          <div className="mt-4 flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span className="text-sm">Analyzing image...</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">OR</span>
+                  </div>
                 </div>
 
                 <div>
@@ -160,6 +343,41 @@ Lifestyle: ${formData.lifestyle}
                     placeholder="Example: I've been experiencing constant headaches, especially in the afternoon. I also feel tired and have difficulty concentrating..."
                   />
                 </div>
+
+                {extractedSymptoms && (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          description: extractedSymptoms
+                        }));
+                        toast.success('Symptoms added to description');
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors text-sm"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                      Use Extracted Symptoms
+                    </button>
+                    <button
+                      onClick={handleGenerateFromImage}
+                      disabled={loading}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-lg transition-shadow disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Generate Report from Image
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
@@ -18,21 +18,11 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Check if user exists
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const userExists = users.find((u: any) => u.email === email);
-      
-      if (!userExists) {
-        setError('No account found with this email. Please sign up first.');
-        setLoading(false);
-        return;
-      }
-
       const success = await login(email, password);
       if (success) {
         navigate('/dashboard');
       } else {
-        setError('Invalid password. Please try again.');
+        setError('Invalid email or password. Please try again.');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -117,6 +107,48 @@ export default function Login() {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="py-12 px-4 bg-gray-900 text-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl font-bold bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent tracking-tight">
+                  HEALWELL AI
+                </span>
+              </div>
+              <p className="text-gray-400">
+                AI-powered health and wellness analysis platform for comprehensive health insights.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="mb-4">Quick Links</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link to="/" className="hover:text-emerald-400 transition-colors">Home</Link></li>
+                <li><Link to="/about" className="hover:text-emerald-400 transition-colors">About Us</Link></li>
+                <li><Link to="/feedback" className="hover:text-emerald-400 transition-colors">Feedback</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="mb-4">Features</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li>AI Health Analysis</li>
+                <li>Diet Planning</li>
+                <li>Progress Tracking</li>
+                <li>BMI Calculator</li>
+                <li>24/7 AI Chatbot</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="pt-8 border-t border-gray-800 text-center text-gray-400">
+            <p>© 2025 HEALWELL AI. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

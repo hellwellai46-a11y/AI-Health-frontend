@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useStorage } from '../context/StorageContext';
 import { healthReportAPI, weeklyPlannerAPI } from '../services/api';
 import Navbar from '../components/Navbar';
 import { Apple, Dumbbell, Pill, Coffee, Sun, Moon, Download, CheckCircle, TrendingUp, Calendar as CalendarIcon, Grid, List } from 'lucide-react';
@@ -28,8 +29,9 @@ interface WeeklyPlan {
 }
 
 export default function DietPlanner() {
-  const { reportId } = useParams<{ reportId: string }>();
+  const { reportId, id } = useParams<{ reportId?: string; id?: string }>();
   const { user } = useAuth();
+  const storage = useStorage();
   const navigate = useNavigate();
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan | null>(null);
   const [showProgress, setShowProgress] = useState(false);
@@ -39,10 +41,71 @@ export default function DietPlanner() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   useEffect(() => {
-    if (reportId && user) {
+    if (id && user) {
+      // Load existing planner by ID
+      loadPlannerById(id);
+    } else if (reportId && user) {
+      // Generate new planner from report
       generatePlanFromReport();
     }
-  }, [reportId, user]);
+  }, [id, reportId, user]);
+
+  // Load existing planner by ID
+  const loadPlannerById = async (plannerId: string) => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const plannerResponse = await weeklyPlannerAPI.getPlannerById(plannerId);
+      
+      if (!plannerResponse.success || !plannerResponse.data) {
+        toast.error('Weekly planner not found');
+        navigate('/dashboard');
+        return;
+      }
+
+      const planner = plannerResponse.data;
+      
+      // Transform backend data to match component expectations
+      const transformedPlan: WeeklyPlan = {
+        _id: planner._id || planner.id,
+        id: planner.id || planner._id,
+        reportId: planner.reportId || '', // May not have reportId
+        userId: planner.userId || user.id,
+        createdDate: planner.createdDate || new Date().toISOString(),
+        weekPlan: planner.weekPlan?.map((day: any, index: number) => {
+          // Parse date properly
+          let parsedDate: Date;
+          if (day.date) {
+            parsedDate = day.date instanceof Date ? day.date : new Date(day.date);
+          } else {
+            parsedDate = new Date();
+            parsedDate.setDate(parsedDate.getDate() + index);
+          }
+          
+          return {
+            day: day.day || `Day ${index + 1}`,
+            date: parsedDate.toISOString(),
+            diet: transformDietPlan(day.diet || day.dietPlan || {}),
+            exercises: Array.isArray(day.exercises) ? day.exercises : [],
+            medicines: transformMedicines(day.medicines || []),
+            notes: day.notes || day.focusNote || '',
+            progress: day.progress || 0,
+            focusNote: day.notes || day.focusNote || ''
+          };
+        }) || []
+      };
+
+      setWeeklyPlan(transformedPlan);
+      toast.success('Weekly planner loaded successfully');
+    } catch (error: any) {
+      console.error('Error loading planner:', error);
+      toast.error(error.response?.data?.error || 'Failed to load weekly planner');
+      navigate('/dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const generatePlanFromReport = async () => {
     if (!reportId || !user) return;
@@ -196,24 +259,31 @@ export default function DietPlanner() {
   const generateDailyDiet = (foods: string[], day: string, dietPreference: string = 'non-vegetarian'): string[] => {
     // Filter foods based on diet preference
     const isVegetarian = dietPreference === 'vegetarian';
-    const vegetarianFoods = ['Oatmeal', 'Fruits', 'Nuts and seeds', 'Vegetables', 'Whole grains', 'Yogurt', 'Smoothie', 'Legumes', 'Quinoa', 'Tofu', 'Tempeh', 'Eggs', 'Cheese'];
-    const nonVegFoods = ['Lean chicken', 'Fish', 'Eggs', 'Dairy'];
+    const dayIndex = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].indexOf(day);
     
-    const availableFoods = foods.length > 0 
-      ? foods 
-      : (isVegetarian ? vegetarianFoods : [...vegetarianFoods, ...nonVegFoods]);
+    // Expanded food options for variety
+    const vegetarianBreakfasts = ['Oatmeal with fruits', 'Scrambled eggs with toast', 'Greek yogurt with berries', 'Avocado toast', 'Poha with vegetables', 'Idli with sambar', 'Paratha with yogurt'];
+    const nonVegBreakfasts = ['Eggs and toast', 'Greek yogurt with nuts', 'Chicken sandwich', 'Fish curry with rice', 'Oatmeal with banana', 'Scrambled eggs with veggies', 'Protein smoothie'];
     
-    // Filter out non-vegetarian foods if vegetarian
-    const filteredFoods = isVegetarian 
-      ? availableFoods.filter(f => !['chicken', 'meat', 'fish', 'poultry', 'seafood', 'beef', 'pork'].some(nonVeg => f.toLowerCase().includes(nonVeg)))
-      : availableFoods;
+    const vegetarianLunches = ['Dal and rice with vegetables', 'Paneer curry with roti', 'Vegetable biryani', 'Rajma with rice', 'Chana masala with naan', 'Mixed vegetable curry', 'Tofu stir-fry'];
+    const nonVegLunches = ['Grilled chicken with rice', 'Fish curry with vegetables', 'Chicken biryani', 'Egg curry with roti', 'Lamb curry with rice', 'Paneer butter masala', 'Seafood pasta'];
     
+    const vegetarianDinners = ['Vegetable soup with bread', 'Stir-fried vegetables with tofu', 'Pasta primavera', 'Dal tadka with chapati', 'Vegetable pulao', 'Quinoa salad', 'Mixed vegetable curry'];
+    const nonVegDinners = ['Grilled fish with vegetables', 'Chicken curry with rice', 'Lamb kebabs with salad', 'Egg bhurji with paratha', 'Tandoori chicken', 'Fish tikka', 'Lean chicken salad'];
+    
+    const snacks = ['Mixed nuts and seeds', 'Fresh fruit', 'Green tea with biscuits', 'Yogurt with honey', 'Protein smoothie', 'Dark chocolate', 'Hummus with vegetables'];
+    
+    const breakfasts = isVegetarian ? vegetarianBreakfasts : nonVegBreakfasts;
+    const lunches = isVegetarian ? vegetarianLunches : nonVegLunches;
+    const dinners = isVegetarian ? vegetarianDinners : nonVegDinners;
+    
+    // Use different foods each day based on day index
     const meals = [
-      `Breakfast: ${filteredFoods[0] || (isVegetarian ? 'Oatmeal' : 'Oatmeal or Eggs')} with ${filteredFoods[1] || 'fruits'}`,
-      `Mid-Morning Snack: ${filteredFoods[2] || 'Nuts and seeds'}`,
-      `Lunch: ${filteredFoods[3] || (isVegetarian ? 'Lentils and rice' : 'Lean protein')} with ${filteredFoods[4] || 'vegetables'} and whole grains`,
-      `Evening Snack: ${filteredFoods[5] || 'Yogurt'} or ${filteredFoods[6] || 'smoothie'}`,
-      `Dinner: ${filteredFoods[Math.floor(Math.random() * filteredFoods.length)] || (isVegetarian ? 'Vegetable curry' : 'Balanced meal')} with salad`,
+      `Breakfast: ${breakfasts[dayIndex % breakfasts.length]}`,
+      `Mid-Morning Snack: ${snacks[dayIndex % snacks.length]}`,
+      `Lunch: ${lunches[dayIndex % lunches.length]}`,
+      `Evening Snack: ${snacks[(dayIndex + 2) % snacks.length]}`,
+      `Dinner: ${dinners[dayIndex % dinners.length]}`,
       'Stay hydrated: Drink 8-10 glasses of water'
     ];
     return meals;
@@ -221,10 +291,42 @@ export default function DietPlanner() {
 
   const generateDailyExercises = (exercises: string[], yoga: string[], day: string): string[] => {
     const dayIndex = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].indexOf(day);
+    
+    // Expanded exercise options for variety
+    const exerciseOptions = [
+      'Morning walk 30 minutes',
+      'Cycling 20 minutes',
+      'Swimming 30 minutes',
+      'Jogging 15 minutes',
+      'Stair climbing 10 minutes',
+      'Dancing 20 minutes',
+      'Hiking or nature walk'
+    ];
+    
+    const yogaOptions = [
+      'Sun Salutation (Surya Namaskar) - 15 minutes',
+      'Warrior poses and stretching - 20 minutes',
+      'Tree pose and balance exercises - 15 minutes',
+      'Downward dog and child\'s pose - 15 minutes',
+      'Twisting poses for digestion - 15 minutes',
+      'Bridge pose and core strengthening - 20 minutes',
+      'Relaxation and meditation - 20 minutes'
+    ];
+    
+    const stretchOptions = [
+      'Full body stretching',
+      'Neck and shoulder stretches',
+      'Hip flexor stretches',
+      'Hamstring and calf stretches',
+      'Core strengthening exercises',
+      'Dynamic warm-up routine',
+      'Cool-down stretching'
+    ];
+    
     return [
-      exercises[dayIndex % exercises.length] || 'Walking 30 minutes',
-      exercises[(dayIndex + 1) % exercises.length] || 'Light stretching',
-      yoga[dayIndex % yoga.length] || 'Basic yoga poses',
+      exercises[dayIndex % exercises.length] || exerciseOptions[dayIndex],
+      exercises[(dayIndex + 1) % exercises.length] || stretchOptions[dayIndex],
+      yoga[dayIndex % yoga.length] || yogaOptions[dayIndex],
       'Deep breathing exercises - 10 minutes'
     ];
   };
@@ -243,9 +345,9 @@ export default function DietPlanner() {
   const handleSavePlan = () => {
     if (!weeklyPlan) return;
 
-    const plans = JSON.parse(localStorage.getItem('weeklyPlans') || '[]');
+    const plans = JSON.parse(storage.getItem('weeklyPlans') || '[]');
     plans.push(weeklyPlan);
-    localStorage.setItem('weeklyPlans', JSON.stringify(plans));
+    storage.setItem('weeklyPlans', JSON.stringify(plans));
     
     toast.success('Weekly plan saved to dashboard!');
     setTimeout(() => navigate('/dashboard'), 1000);

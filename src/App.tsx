@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -13,13 +14,17 @@ import DietPlanner from './pages/DietPlanner';
 import Reminders from './pages/Reminders';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { StorageProvider } from './context/StorageContext';
 import { Toaster } from './components/ui/sonner';
+import FloatingChatbot from './components/FloatingChatbot';
+import { useStorage } from './context/StorageContext';
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <Router>
+    <StorageProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Router>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
@@ -32,18 +37,22 @@ function App() {
             <Route path="/chatbot" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/diet-planner/:reportId?" element={<ProtectedRoute><DietPlanner /></ProtectedRoute>} />
+            <Route path="/planner/:id" element={<ProtectedRoute><DietPlanner /></ProtectedRoute>} />
             <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <FloatingChatbot />
+          <Toaster />
         </Router>
-        <Toaster />
       </AuthProvider>
     </ThemeProvider>
+    </StorageProvider>
   );
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = localStorage.getItem('user');
+  const storage = useStorage();
+  const isAuthenticated = storage.getItem('user');
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 }
 

@@ -7,6 +7,7 @@
     plugins: [react()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+      dedupe: ['react', 'react-dom'],
       alias: {
         'vaul@1.1.2': 'vaul',
         'sonner@2.0.3': 'sonner',
@@ -52,9 +53,19 @@
     build: {
       target: 'esnext',
       outDir: 'build',
+      rollupOptions: {
+        input: {
+          main: './index.html',
+        },
+      },
     },
     server: {
       port: 3000,
       open: true,
+      host: 'localhost',
+      strictPort: false,
+      hmr: {
+        clientPort: 3000,
+      },
     },
   });
