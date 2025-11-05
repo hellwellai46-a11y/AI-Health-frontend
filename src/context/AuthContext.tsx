@@ -15,7 +15,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (name: string, age: number, email: string, password: string, gender?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   updateProfile: (updates: Partial<User>) => Promise<void>;
@@ -47,19 +47,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [storage]);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await authAPI.login(email, password);
       if (response.success && response.user && response.token) {
         setUser(response.user);
         storage.setItem('user', JSON.stringify(response.user));
         storage.setItem('token', response.token);
-        return true;
+        return { success: true };
       }
-      return false;
+      return { 
+        success: false, 
+        error: response.message || 'Login failed. Please check your credentials.' 
+      };
     } catch (error: any) {
-      console.error('Login error:', error);
-      return false;
+      // Extract error message from different error types
+      let errorMessage = 'An error occurred. Please try again.';
+      
+      if (error.response) {
+        // Server responded with error status
+        errorMessage = error.response.data?.message || 
+                      error.response.data?.error || 
+                      `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        // Request was made but no response received
+        errorMessage = 'Cannot connect to server. Please check your internet connection or try again later.';
+        console.error('Network error - no response received:', error.request);
+      } else {
+        // Error in setting up the request
+        errorMessage = error.message || 'An unexpected error occurred.';
+        console.error('Login error:', error.message);
+      }
+      
+      // Log full error for debugging (persistent)
+      console.error('Login failed:', {
+        message: errorMessage,
+        error: error,
+        timestamp: new Date().toISOString()
+      });
+      
+      return { success: false, error: errorMessage };
     }
   };
 

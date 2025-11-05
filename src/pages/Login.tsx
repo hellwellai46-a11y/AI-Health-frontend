@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import { Mail, Lock, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -18,14 +19,32 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const success = await login(email, password);
-      if (success) {
+      const result = await login(email, password);
+      if (result.success) {
+        toast.success('Login successful! Welcome back.');
         navigate('/dashboard');
       } else {
-        setError('Invalid email or password. Please try again.');
+        // Show specific error message from the API
+        const errorMessage = result.error || 'Invalid email or password. Please try again.';
+        setError(errorMessage);
+        toast.error(errorMessage);
+        // Also log to console for debugging (persistent)
+        console.error('Login failed:', {
+          error: errorMessage,
+          email: email,
+          timestamp: new Date().toISOString()
+        });
       }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
+    } catch (err: any) {
+      // Fallback error handling
+      const errorMessage = err?.message || err?.error || 'An unexpected error occurred. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      console.error('Login form error:', {
+        error: err,
+        message: errorMessage,
+        timestamp: new Date().toISOString()
+      });
     } finally {
       setLoading(false);
     }

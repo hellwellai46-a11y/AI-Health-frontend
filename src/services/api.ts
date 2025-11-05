@@ -30,13 +30,39 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Don't redirect on login/register 401 errors - let the component handle it
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      const storage = getGlobalStorage();
-      storage.removeItem("token");
-      storage.removeItem("user");
-      window.location.href = "/login";
+      const isAuthEndpoint = error.config?.url?.includes('/auth/login') || 
+                            error.config?.url?.includes('/auth/register');
+      
+      if (!isAuthEndpoint) {
+        // Token expired or invalid for protected routes - redirect to login
+        const storage = getGlobalStorage();
+        storage.removeItem("token");
+        storage.removeItem("user");
+        // Only redirect if not already on login page
+        if (window.location.pathname !== '/login') {
+          window.location.href = "/login";
+        }
+      }
     }
+    
+    // Log errors for debugging (but don't block)
+    if (error.response) {
+      // Server responded with error
+      console.error('API Error:', {
+        status: error.response.status,
+        message: error.response.data?.message || error.response.data?.error,
+        url: error.config?.url
+      });
+    } else if (error.request) {
+      // Request was made but no response
+      console.error('Network Error:', {
+        message: 'No response from server',
+        url: error.config?.url
+      });
+    }
+    
     return Promise.reject(error);
   }
 );
