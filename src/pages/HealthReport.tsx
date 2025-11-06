@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { healthReportAPI } from '../services/api';
 import Navbar from '../components/Navbar';
-import { Download, Calendar, ArrowLeft, Activity, AlertTriangle, Heart, Apple, Dumbbell, ShieldAlert, Stethoscope, Leaf, CheckCircle, XCircle, Pill, Bell } from 'lucide-react';
+import { Download, Calendar, ArrowLeft, Activity, AlertTriangle, Heart, Apple, Dumbbell, ShieldAlert, Stethoscope, Leaf, CheckCircle, XCircle, Pill, Bell, Play, ExternalLink, Youtube } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import { reminderAPI } from '../services/api';
@@ -30,10 +30,22 @@ interface HealthReportType {
   summary: string;
 }
 
+interface YouTubeVideo {
+  videoId: string;
+  title: string;
+  description: string;
+  thumbnail: string;
+  channelTitle: string;
+  publishedAt: string;
+  url: string;
+}
+
 export default function HealthReport() {
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<HealthReportType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [videos, setVideos] = useState<YouTubeVideo[]>([]);
+  const [videosLoading, setVideosLoading] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -72,6 +84,11 @@ export default function HealthReport() {
           summary: reportData.summary || ''
         };
         setReport(formattedReport);
+        
+        // Fetch YouTube videos if symptoms are available
+        if (formattedReport.symptoms && formattedReport.symptoms.length > 0) {
+          fetchYouTubeVideos(formattedReport.symptoms);
+        }
       } else {
         toast.error('Report not found');
         navigate('/dashboard');
@@ -82,6 +99,23 @@ export default function HealthReport() {
       navigate('/dashboard');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchYouTubeVideos = async (symptoms: string[]) => {
+    try {
+      setVideosLoading(true);
+      const response = await healthReportAPI.getYouTubeVideos(symptoms);
+      if (response.success && response.data) {
+        setVideos(response.data);
+      } else {
+        console.warn('Failed to fetch YouTube videos:', response.error);
+      }
+    } catch (error: any) {
+      console.error('Error fetching YouTube videos:', error);
+      // Don't show error toast - videos are optional
+    } finally {
+      setVideosLoading(false);
     }
   };
 
@@ -313,6 +347,84 @@ export default function HealthReport() {
             <h3 className="text-gray-900 dark:text-white mb-3">Summary</h3>
             <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{report.summary || 'No summary available'}</p>
           </div>
+
+          {/* YouTube Videos Section */}
+          {report.symptoms && report.symptoms.length > 0 && (
+            <div className="mb-8 p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+                  <Youtube className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-gray-900 dark:text-white text-xl font-semibold">Related Health Videos</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Educational videos about your symptoms</p>
+                </div>
+              </div>
+
+              {videosLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="ml-3 text-gray-600 dark:text-gray-400">Loading videos...</span>
+                </div>
+              ) : videos.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {videos.map((video, index) => (
+                    <a
+                      key={video.videoId}
+                      href={video.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group relative block rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                    >
+                      {/* Thumbnail */}
+                      <div className="relative aspect-video bg-gray-200 dark:bg-gray-600 overflow-hidden">
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                        {/* Play button overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                          <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                            <Play className="w-8 h-8 text-white ml-1" fill="white" />
+                          </div>
+                        </div>
+                        {/* Duration badge */}
+                        <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/70 text-white text-xs rounded">
+                          YouTube
+                        </div>
+                      </div>
+                      
+                      {/* Video Info */}
+                      <div className="p-4">
+                        <h4 className="text-gray-900 dark:text-white font-semibold line-clamp-2 mb-2 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors">
+                          {video.title}
+                        </h4>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-2 line-clamp-2">
+                          {video.description}
+                        </p>
+                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <span>{video.channelTitle}</span>
+                          </span>
+                          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                            <ExternalLink className="w-3 h-3" />
+                            Watch
+                          </span>
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <Youtube className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No videos available at the moment.</p>
+                  <p className="text-sm mt-1">Please check your YouTube API configuration.</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Main Report Sections */}
           <div className="space-y-6">
