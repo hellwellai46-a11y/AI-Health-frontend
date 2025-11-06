@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Calculator, X, TrendingUp, Apple, ArrowLeft } from 'lucide-react';
 import { nutritionAPI } from '../services/api';
 import { toast } from 'sonner';
+import { useTheme } from '../context/ThemeContext';
 
 interface NutritionResult {
   protein: number;
@@ -22,6 +23,7 @@ interface NutritionCalculatorProps {
 }
 
 export default function NutritionCalculator({ isOpen: externalIsOpen, onOpenChange }: NutritionCalculatorProps = {} as NutritionCalculatorProps) {
+  const { isDarkMode } = useTheme();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const setIsOpen = onOpenChange || setInternalIsOpen;
@@ -73,24 +75,24 @@ export default function NutritionCalculator({ isOpen: externalIsOpen, onOpenChan
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100001] flex items-center justify-center p-4" style={{ zIndex: 100001 }}>
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-slideUp">
             {/* Header */}
-            <div className="px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white flex items-center justify-between flex-shrink-0">
+            <div className={`px-6 py-4 flex items-center justify-between flex-shrink-0 ${isDarkMode ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' : 'bg-white border-b border-gray-200'}`}>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => {
                     setIsOpen(false);
                     handleClear();
                   }}
-                  className="p-2 rounded-lg hover:bg-white/20 transition-colors"
+                  className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-white/20' : 'hover:bg-gray-100'}`}
                   aria-label="Back"
                 >
-                  <ArrowLeft className="w-5 h-5" />
+                  <ArrowLeft className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-gray-900'}`} />
                 </button>
-                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                  <Calculator className="w-5 h-5" />
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-white/20' : 'bg-amber-100'}`}>
+                  <Calculator className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-amber-600'}`} />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-lg">Nutrition Calculator</h2>
-                  <p className="text-xs text-white/80">Calculate your meal nutrition</p>
+                  <h2 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Nutrition Calculator</h2>
+                  <p className={`text-xs ${isDarkMode ? 'text-white/90' : 'text-gray-600'}`}>Calculate your meal nutrition</p>
                 </div>
               </div>
               <button
@@ -98,10 +100,10 @@ export default function NutritionCalculator({ isOpen: externalIsOpen, onOpenChan
                   setIsOpen(false);
                   handleClear();
                 }}
-                className="p-2 rounded-lg hover:bg-white/20 transition-colors"
+                className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-white/20' : 'hover:bg-gray-100'}`}
                 aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-gray-900'}`} />
               </button>
             </div>
 
@@ -114,18 +116,18 @@ export default function NutritionCalculator({ isOpen: externalIsOpen, onOpenChan
               }}
             >
               {/* Input Section */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <div className="space-y-3">
+                <label className="block text-base font-bold text-gray-900 dark:text-gray-100 mb-2" style={{ color: '#111827', fontWeight: 700 }}>
                   Enter your food items
                 </label>
                 <textarea
                   value={foodInput}
                   onChange={(e) => setFoodInput(e.target.value)}
                   placeholder="e.g., 2 chapati, 1 cup of daal, 50 gm of panner, 2 cup of white rice, 1 bread"
-                  className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-3 rounded-lg bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-none shadow-sm"
                   rows={4}
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                   Enter food items separated by commas (e.g., "2 chapati, 1 cup daal, 50 gm panner")
                 </p>
               </div>
@@ -134,17 +136,27 @@ export default function NutritionCalculator({ isOpen: externalIsOpen, onOpenChan
               <button
                 onClick={handleCalculate}
                 disabled={!foodInput.trim() || isCalculating}
-                className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center gap-2"
+                className="w-full px-6 py-3 rounded-lg text-white hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center gap-2 relative z-10 border-0"
+                style={{
+                  background: !foodInput.trim() || isCalculating 
+                    ? 'linear-gradient(to right, #d1d5db, #9ca3af)' 
+                    : 'linear-gradient(to right, #f59e0b, #f97316)',
+                  color: '#ffffff',
+                  textShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
+                  boxShadow: !foodInput.trim() || isCalculating 
+                    ? 'none' 
+                    : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                }}
               >
                 {isCalculating ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Calculating...</span>
+                    <span className="text-white font-semibold" style={{ textShadow: '0 1px 3px rgba(0, 0, 0, 0.3)' }}>Calculating...</span>
                   </>
                 ) : (
                   <>
-                    <Calculator className="w-5 h-5" />
-                    <span>Calculate Nutrition</span>
+                    <Calculator className="w-5 h-5 text-white" style={{ filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3))' }} />
+                    <span className="text-white font-semibold" style={{ textShadow: '0 1px 3px rgba(0, 0, 0, 0.3)' }}>Calculate Nutrition</span>
                   </>
                 )}
               </button>
