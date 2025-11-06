@@ -12,41 +12,46 @@ import Chatbot from './pages/Chatbot';
 import Profile from './pages/Profile';
 import DietPlanner from './pages/DietPlanner';
 import Reminders from './pages/Reminders';
+import LiveHealthView from './pages/LiveHealthView';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { StorageProvider } from './context/StorageContext';
 import { Toaster } from './components/ui/sonner';
 import FloatingChatbot from './components/FloatingChatbot';
 import { useStorage } from './context/StorageContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 function App() {
   return (
-    <StorageProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <Router>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/feedback" element={<Feedback />} />
-            <Route path="/analyze" element={<ProtectedRoute><HealthAnalyzer /></ProtectedRoute>} />
-            <Route path="/report/:id" element={<ProtectedRoute><HealthReport /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/chatbot" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/diet-planner/:reportId?" element={<ProtectedRoute><DietPlanner /></ProtectedRoute>} />
-            <Route path="/planner/:id" element={<ProtectedRoute><DietPlanner /></ProtectedRoute>} />
-            <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          <FloatingChatbot />
-          <Toaster />
-        </Router>
-      </AuthProvider>
-    </ThemeProvider>
-    </StorageProvider>
+    <ErrorBoundary>
+      <StorageProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <Router>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/feedback" element={<Feedback />} />
+              <Route path="/analyze" element={<ProtectedRoute><HealthAnalyzer /></ProtectedRoute>} />
+              <Route path="/report/:id" element={<ProtectedRoute><HealthReport /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/chatbot" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/diet-planner/:reportId?" element={<ProtectedRoute><DietPlanner /></ProtectedRoute>} />
+              <Route path="/planner/:id" element={<ProtectedRoute><DietPlanner /></ProtectedRoute>} />
+              <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
+              <Route path="/live/:id" element={<LiveHealthView />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <FloatingChatbot />
+            <Toaster />
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
+      </StorageProvider>
+    </ErrorBoundary>
   );
 }
 

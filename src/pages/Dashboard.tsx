@@ -18,7 +18,13 @@ import {
   Eye,
   Calculator,
   Bell,
-  Clock
+  Clock,
+  Link as LinkIcon,
+  Copy,
+  Square,
+  Thermometer,
+  Droplet,
+  Info
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
@@ -51,6 +57,28 @@ export default function Dashboard() {
   const [completedRemindersCount, setCompletedRemindersCount] = useState(0);
   const [showAllReports, setShowAllReports] = useState(false);
   const [showAllPlans, setShowAllPlans] = useState(false);
+  
+  // Live Health Monitoring state
+  const [liveLink, setLiveLink] = useState<string | null>(null);
+  const [linkExpiry, setLinkExpiry] = useState<Date | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const [isSharing, setIsSharing] = useState(false);
+  
+  // Mock health readings (in real app, these would come from sensors/API)
+  const [healthReadings, setHealthReadings] = useState({
+    heartRate: 85,
+    bloodPressure: { systolic: 118, diastolic: 78 },
+    temperature: 36.8,
+    oxygenLevel: 97
+  });
+  
+  // Chart data for pulse visualization
+  const [pulseData, setPulseData] = useState(
+    Array.from({ length: 20 }, (_, i) => ({
+      time: i,
+      value: 85 + Math.sin(i * 0.5) * 5
+    }))
+  );
 
   useEffect(() => {
     if (user) {
@@ -71,7 +99,103 @@ export default function Dashboard() {
       '🌞 Get 15 minutes of sunlight daily for Vitamin D'
     ];
     setHealthTip(tips[Math.floor(Math.random() * tips.length)]);
+    
+    // Update pulse data animation
+    const pulseInterval = setInterval(() => {
+      setPulseData(prev => {
+        const newData = [...prev.slice(1)];
+        const lastValue = prev[prev.length - 1].value;
+        newData.push({
+          time: prev.length,
+          value: lastValue + (Math.random() - 0.5) * 3
+        });
+        return newData;
+      });
+    }, 1000);
+    
+    return () => clearInterval(pulseInterval);
   }, [user]);
+  
+  // Update time remaining for link expiry
+  useEffect(() => {
+    if (!linkExpiry) return;
+    
+    const updateTimer = () => {
+      const now = new Date();
+      const diff = linkExpiry.getTime() - now.getTime();
+      
+      if (diff <= 0) {
+        setTimeRemaining('Expired');
+        setLiveLink(null);
+        setIsSharing(false);
+        setLinkExpiry(null);
+        return;
+      }
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      setTimeRemaining(`${hours}h ${minutes}m`);
+    };
+    
+    updateTimer();
+    const timerInterval = setInterval(updateTimer, 60000); // Update every minute
+    
+    return () => clearInterval(timerInterval);
+  }, [linkExpiry]);
+  
+  // Simulate health readings updates
+  useEffect(() => {
+    if (!isSharing) return;
+    
+    const healthInterval = setInterval(() => {
+      setHealthReadings(prev => ({
+        heartRate: Math.max(60, Math.min(100, prev.heartRate + (Math.random() - 0.5) * 4)),
+        bloodPressure: {
+          systolic: Math.max(110, Math.min(130, prev.bloodPressure.systolic + (Math.random() - 0.5) * 4)),
+          diastolic: Math.max(70, Math.min(85, prev.bloodPressure.diastolic + (Math.random() - 0.5) * 3))
+        },
+        temperature: Math.max(36.0, Math.min(37.5, prev.temperature + (Math.random() - 0.5) * 0.2)),
+        oxygenLevel: Math.max(95, Math.min(100, prev.oxygenLevel + (Math.random() - 0.5) * 1))
+      }));
+    }, 3000); // Update every 3 seconds
+    
+    return () => clearInterval(healthInterval);
+  }, [isSharing]);
+  
+  const generateLiveLink = () => {
+    const linkId = Math.random().toString(36).substring(2, 9);
+    
+    // Get base URL - works in both development and production
+    // window.location.origin automatically gets the current domain
+    // Development: http://localhost:3000
+    // Production: https://your-domain.vercel.app (or your deployed domain)
+    // Optional: Can override with VITE_FRONTEND_URL env variable if needed
+    const baseUrl = window.location.origin;
+    const link = `${baseUrl}/live/${linkId}`;
+    
+    setLiveLink(link);
+    setIsSharing(true);
+    const expiry = new Date();
+    expiry.setHours(expiry.getHours() + 24);
+    setLinkExpiry(expiry);
+    
+    toast.success('Live link generated! Share it with your doctor.');
+    console.log('Generated live link:', link); // For debugging
+  };
+  
+  const copyLink = () => {
+    if (liveLink) {
+      navigator.clipboard.writeText(liveLink);
+      toast.success('Link copied to clipboard!');
+    }
+  };
+  
+  const stopSharing = () => {
+    setLiveLink(null);
+    setIsSharing(false);
+    setLinkExpiry(null);
+    toast.info('Live sharing stopped.');
+  };
 
   const fetchUserData = async () => {
     if (!user) return;
@@ -379,6 +503,137 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Live Health Monitoring */}
+          <div className="mb-8 p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-gray-900 dark:text-white">Live Health Monitoring</h3>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Live</span>
+              </div>
+              <div className="group relative">
+                <Info className="w-4 h-4 text-gray-400 cursor-help" />
+                <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-64 p-2 text-xs bg-gray-900 dark:bg-gray-700 text-white rounded-lg shadow-lg z-10">
+                  Anyone with this link can view your live health status.
+                </div>
+              </div>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
+              Share real-time vitals with your doctor.
+            </p>
+
+            {!liveLink ? (
+              <div className="text-center py-8">
+                <button
+                  onClick={generateLiveLink}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-lg transition-shadow"
+                >
+                  <LinkIcon className="w-5 h-5" />
+                  Generate Live Link
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Link Display */}
+                <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3 mb-3">
+                    <code className="flex-1 text-sm text-gray-900 dark:text-gray-100 break-all">
+                      {liveLink}
+                    </code>
+                    <button
+                      onClick={copyLink}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-emerald-500 transition-colors text-sm"
+                    >
+                      <Copy className="w-4 h-4" />
+                      Copy Link
+                    </button>
+                    <button
+                      onClick={stopSharing}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm"
+                    >
+                      <Square className="w-4 h-4" />
+                      Stop Sharing
+                    </button>
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Expires in: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{timeRemaining}</span>
+                  </div>
+                </div>
+
+                {/* Health Readings Panel */}
+                <div className="grid grid-cols-4 gap-4">
+                  {/* Heart Rate */}
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border-2 border-red-200 dark:border-red-800 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Heart className="w-5 h-5 text-red-600 dark:text-red-400" />
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Heart Rate</span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {Math.round(healthReadings.heartRate)}
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">bpm</div>
+                  </div>
+
+                  {/* Blood Pressure */}
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-800 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Blood Pressure</span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {Math.round(healthReadings.bloodPressure.systolic)}/{Math.round(healthReadings.bloodPressure.diastolic)}
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">mmHg</div>
+                  </div>
+
+                  {/* Temperature */}
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border-2 border-orange-200 dark:border-orange-800 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Thermometer className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Temperature</span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {healthReadings.temperature.toFixed(1)}
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">°C</div>
+                  </div>
+
+                  {/* Oxygen Level */}
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-2 border-emerald-200 dark:border-emerald-800 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Droplet className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Oxygen Level</span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {Math.round(healthReadings.oxygenLevel)}%
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">SpO2</div>
+                  </div>
+                </div>
+
+                {/* Pulse Chart */}
+                <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Live Pulse</span>
+                  </div>
+                  <ResponsiveContainer width="100%" height={80}>
+                    <LineChart data={pulseData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        dot={false}
+                        animationDuration={300}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Past Reports History */}
