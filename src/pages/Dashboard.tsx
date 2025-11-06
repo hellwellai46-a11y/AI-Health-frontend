@@ -171,7 +171,7 @@ export default function Dashboard() {
     // Production: https://your-domain.vercel.app (or your deployed domain)
     // Optional: Can override with VITE_FRONTEND_URL env variable if needed
     const baseUrl = window.location.origin;
-    const link = `${baseUrl}/live/${linkId}`;
+    const link = `${baseUrl}/live/${linkId}`;//
     
     setLiveLink(link);
     setIsSharing(true);
