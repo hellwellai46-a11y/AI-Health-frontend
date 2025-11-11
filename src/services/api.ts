@@ -149,6 +149,11 @@ export const healthReportAPI = {
     });
     return response.data;
   },
+
+  getYouTubeVideos: async (symptoms: string[]) => {
+    const response = await api.post('/reports/youtube-videos', { symptoms });
+    return response.data;
+  },
 };
 
 // Weekly Planner API

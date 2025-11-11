@@ -7,6 +7,7 @@ interface AnimatedBackgroundProps {
   enableGradient?: boolean;
 }
 
+
 export default function AnimatedBackground({
   particleCount = 50,
   parallaxIntensity = 0.5,
@@ -41,6 +42,7 @@ export default function AnimatedBackground({
           canvas.width = window.innerWidth;
           canvas.height = window.innerHeight;
         };
+        //
 
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);

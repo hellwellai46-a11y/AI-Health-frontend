@@ -115,7 +115,9 @@ export default function Home() {
                   padding: '15px',
                   background: 'linear-gradient(90deg, #059669, #14b8a6, #06b6d4, #14b8a6, #059669)',
                   backgroundSize: '200% 100%',
-                  animation: 'gradient-shift 8s ease infinite, pulse-glow 2s ease-in-out infinite'
+                  animation: 'gradient-shift 8s ease infinite, pulse-glow 2s ease-in-out infinite',
+                  color: '#ffffff',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
                 }}
               >
                 {/* Shimmer effect */}
@@ -129,18 +131,18 @@ export default function Home() {
                 
                 {/* Left Icon - Nutrition/Food */}
                 <div className="relative z-10 flex items-center justify-center">
-                  <UtensilsCrossed className="w-6 h-6 group-hover:scale-110 transition-transform duration-300 animate-icon-bounce" style={{ animationDelay: '0s' }} />
+                  <UtensilsCrossed className="w-6 h-6 text-white group-hover:scale-110 transition-transform duration-300 animate-icon-bounce" style={{ animationDelay: '0s', filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2))' }} />
                 </div>
                 
                 {/* Text Content */}
                 <div className="relative z-10 text-center">
-                  <div className="text-lg font-bold tracking-tight group-hover:scale-105 transition-transform duration-300">Check your Nutrition</div>
-                  <div className="text-xs font-normal text-white/80 mt-0.5 group-hover:text-white/100 transition-colors duration-300">Powered by AI</div>
+                  <div className="text-lg font-bold tracking-tight group-hover:scale-105 transition-transform duration-300 text-white" style={{ textShadow: '0 1px 3px rgba(0, 0, 0, 0.3)' }}>Check your Nutrition</div>
+                  <div className="text-xs font-normal text-white/90 mt-0.5 group-hover:text-white transition-colors duration-300" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)' }}>Powered by AI</div>
                 </div>
                 
                 {/* Right Icon - Apple/Heart */}
                 <div className="relative z-10 flex items-center justify-center">
-                  <Apple className="w-6 h-6 group-hover:scale-110 transition-transform duration-300 animate-icon-bounce" style={{ animationDelay: '0.5s' }} />
+                  <Apple className="w-6 h-6 text-white group-hover:scale-110 transition-transform duration-300 animate-icon-bounce" style={{ animationDelay: '0.5s', filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2))' }} />
                 </div>
                 
                 {/* Animated border glow */}
