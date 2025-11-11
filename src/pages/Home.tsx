@@ -112,6 +112,7 @@ export default function Home() {
                 onClick={handleOpenNutritionCalculator}
                 className="group relative px-8 py-6 rounded-2xl text-white hover:scale-[1.05] transition-all duration-300 font-bold shadow-xl relative z-20 flex items-center justify-center gap-4 overflow-hidden animate-pulse-glow"
                 style={{
+                  padding: '15px',
                   background: 'linear-gradient(90deg, #059669, #14b8a6, #06b6d4, #14b8a6, #059669)',
                   backgroundSize: '200% 100%',
                   animation: 'gradient-shift 8s ease infinite, pulse-glow 2s ease-in-out infinite',
