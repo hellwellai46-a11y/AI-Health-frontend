@@ -207,7 +207,6 @@ export default function HealthReport() {
 
   const handleAddToDashboard = () => {
     toast.success('Report saved to your dashboard!');
-    navigate('/dashboard');
   };
 
   const handleMakeDietPlan = () => {
