@@ -68,7 +68,7 @@ export default function About() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4">
+      <section className="pt-32 pb-1 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-gray-900 dark:text-white mb-6">
             About <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-cyan-500">Health Analyzer</span>
@@ -80,7 +80,7 @@ export default function About() {
       </section>
 
       {/* Mission Section */}
-      <section className="py-20 px-4">
+      <section className="py-10 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="relative">

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { chatbotAPI } from '../services/api';
@@ -385,11 +386,12 @@ export default function FloatingChatbot() {
             className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col transition-all duration-300 ${
               isMinimized 
                 ? 'w-80 h-16' 
-                : 'w-[90vw] sm:w-[420px] md:w-[480px] h-[650px] max-h-[85vh]'
+                : 'w-[500px] h-[600px]'
             }`}
             style={{
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
               animation: 'slideUpFade 0.3s ease-out',
+              maxWidth: '500px',
             }}
           >
             {/* Header */}
